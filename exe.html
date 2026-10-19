@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en-us">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Papers_Please</title>
+    <meta name="description" content="boxedwine emulator">
+    <meta name="keywords" content="emulator,wine,windows,x86,PC,emscripten,web assembly,wasm,boxedwine">
+    <meta name="author" content="James Bryant, Kevin O'Dwyer">
+    <link rel="stylesheet" type="text/css" href="boxedwine.css?v=2">
+    <style>
+      /* Full black background, no scrollbars, no default margin */
+      html, body {
+          margin: 0;
+          padding: 0;
+          width: 100%;
+          height: 100%;
+          background-color: #000;
+          overflow: hidden;
+      }
+
+      /* Center the canvas. The canvas element itself is sized to the exact
+         displayed image (JS keeps it fitted), so boxedwine's mouse coordinate
+         mapping (canvas.width / rect.width) stays accurate - no letterbox from
+         object-fit, which the emulator does not account for. */
+      #dropzone {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background-color: #000;
+      }
+
+      .emscripten_border {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+          margin: 0;
+          border: 0;
+          background-color: #000;
+      }
+
+      #canvas.emscripten {
+          display: block;
+          width: 800px;
+          height: 450px;
+          background-color: #000;
+          cursor: default;
+          touch-action: none;
+          outline: none;
+      }
+
+      #loading {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          background-color: #000;
+          color: #eee;
+          font-family: Arial, Helvetica, sans-serif;
+          z-index: 10;
+      }
+
+      #loading[hidden] { display: none; }
+
+      /* Hidden by default: Wine's log output costs DOM reflows and is not part
+         of the game. Toggle it with the Show console checkbox if needed. */
+      #output {
+          display: none;
+          width: 100%;
+          max-width: 100%;
+          height: 30vh;
+          margin: 0;
+          padding: 4px;
+          box-sizing: border-box;
+          background-color: #000;
+          color: #0f0;
+          font-family: monospace;
+          border: 0;
+          position: fixed;
+          left: 0;
+          bottom: 0;
+          z-index: 20;
+      }
+    </style>
+  </head>
+  <body>
+  <div id="loading">
+      <figure id="spinner" style="overflow: visible; margin: 0;">
+         <div class="spinner" style="margin: 0 auto;"></div>
+      </figure>
+      <div class="emscripten" id="status">Downloading...</div>
+      <div class="emscripten">
+          <progress value="0" max="100" id="progress"></progress>
+      </div>
+  </div>
+    <div>
+        <!-- All UI controls hidden to prevent JS crashes while removing them from view -->
+        <div class="emscripten" style="display: none;">
+            <button id="startbtn" style="display: none" onclick="start()">Start</button>
+            <button id="uploadbtn" style="display: none" onclick="document.getElementById('upload').click()" >Add File(s)</button>
+            <input style="display: none" id="upload" name="upload" onclick="document.getElementById('uploadbtn').click();" onchange="startWithFiles(event.target.files);"  type="file" multiple />
+            <button id="downloadbtn" style="display: none" onclick="buildGetFilesModal();">Get File(s)</button>
+            <a style="display: none" id="modalLink" href="#openModal">Open</a>
+            <a style="display: none" id="modalLinkExe" href="#openModalExe">Open</a>
+
+          <span id="sound-checkbox" style="display: none">
+              <input type="checkbox" id="soundToggle" onclick="toggleSound();" />Enable Sound
+          </span>
+          <input type="checkbox" id="pointerLock">
+          <input type="checkbox" id="showConsole" onclick="toggleConsole();">Show console
+          &nbsp;&nbsp;&nbsp;
+          <input type="checkbox" id="resize">Resize canvas
+          <input type="button" value="Fullscreen" onclick="toggleFullscreen()">
+        </div>
+
+        <!-- Main Display, centred in viewport -->
+        <div id="dropzone">
+            <div class="emscripten_border">
+                <!-- Backbuffer is the emulated resolution (16:9); CSS scales it to fit -->
+                <canvas class="emscripten" id="canvas" width="800" height="450" oncontextmenu="event.preventDefault()"></canvas>
+            </div>
+        </div>
+
+        <!-- Console UI (hidden unless the Show console box is checked) -->
+        <textarea class="emscripten" id="output" rows="10"></textarea>
+
+        <!-- Modals hidden from UI -->
+        <div id="openModal" class="modalDialog" style="display: none;">
+            <div> <a href="#close" title="Close" class="close" onclick="closeGetFilesModal();">X</a>
+                <div>
+                    <h3>Get File(s)</h3>
+                    <input id="selectedItem" type="text" size="50" readonly>
+                    <button onclick="extract();">Get</button>
+                </div>
+                <div id="tree" class="scroll-style">
+                </div>
+                <div>
+                    <h3 id="loadStatus">Loading...</h3>
+                </div>
+            </div>
+        </div>
+        <div id="openModalExe" class="modalDialog" style="display: none;">
+            <div> <a id="openModalExeClick" href="#close" title="Close" class="close">X</a>
+                <div>
+                    <h3>Execute</h3>
+                    <div id="message"></div>
+                    <div id="items" class="scroll-style"></div>
+                </div>
+            </div>
+        </div>
+        <hr style="display: none;">
+    </div>
+    <script src="boxedwine-shell.js?v=2"></script>
+    <script async type="text/javascript" src="boxedwine.js"></script>
+  </body>
+</html>

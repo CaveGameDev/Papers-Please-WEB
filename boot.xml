@@ -1,0 +1,50 @@
+<boot>
+	<!--
+	savedir
+
+	Set this to [DEFAULT] for the default save directory.
+		Windows: C:\Users\[USERNAME]\AppData\Roaming\3909\PapersPlease\
+		OSX: ~/Library/Application Support/PapersPlease/
+
+	Set to the full path of a custom directory to change where saves are stored.
+		ie (Windows): D:\Games\Saves\PapersPlease
+		ie (OSX): /Users/[USERNAME]/Documents/PapersPleaseSaves
+		(The directory will be created if it doesn't exit.)
+	-->
+	<savedir>saves</savedir>
+
+	<!--
+	savebackups
+
+	Set this to "true" to save a copy of all files to the "backups" subdirectory
+	of the save dir.
+	-->
+	<savebackups>false</savebackups>
+
+	<!--
+	softwarerendering
+
+	Set this to "true" to force the game to run with software rendering. This mode
+	is more likely to work if your video card has trouble with OpenGL, but it may
+	prevent the Steam overlay from appearing. Software rendering is visually
+	identical to hardware rendering, just a little slower. A snail icon will 
+	appear on the settings screen when software rendering is active.
+
+	Software rendering can also be enabled by adding "softren" as a command line
+	parameter when starting the game.
+	-->
+	<softwarerendering>true</softwarerendering>
+
+	<!-- 
+	resizeFullscreen
+	
+	Set this to "true" to force the fullscreen video mode to best match the game's
+	native 570x320 resolution. This may lead to a slightly blurry appearance, but
+	can scale better on some low-resolution monitors.
+
+	If this is "false", the monitor's native resolution will be used to provide
+	the sharpest visuals.
+	-->
+	<resizefullscreen>false</resizefullscreen>
+
+</boot>
