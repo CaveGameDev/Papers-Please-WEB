@@ -25,33 +25,19 @@ let DISPLAY_HEIGHT = GAME_HEIGHT;
 
 var lastFit = "";
 
+// Sizing is CSS (exe.html): the clip box shows the top-left 640x450 game window of
+// the 800x450 desktop, fitted to the viewport. boxedwine writes the canvas's inline
+// backbuffer size while it boots, so keep the inline size at 125% x 100% of the box.
 function fitCanvasToViewport() {
     var canvas = document.getElementById('canvas');
     if (!canvas) return;
-    var w = canvas.width || DISPLAY_WIDTH;
-    var h = canvas.height || DISPLAY_HEIGHT;
-    var vw = document.documentElement.clientWidth || window.innerWidth || w;
-    var vh = document.documentElement.clientHeight || window.innerHeight || h;
-    if (vw < 1 || vh < 1 || w < 1 || h < 1) return;
-
-    var scale = Math.min(vw / w, vh / h);
-    var key = w + "x" + h + "@" + vw + "x" + vh;
-    if (key === lastFit) return;
-    lastFit = key;
-
-    // Pin the layout box to the emulator's backbuffer and do the screen fit with
-    // a transform. boxedwine writes its own inline width/height (sometimes with
-    // !important) while it boots, and that is what used to fight the page CSS,
-    // stretch the picture and crop it. A transform is ignored by the emulator, so
-    // the rendered image is always the whole frame, aspect-correct and centred.
-    canvas.style.setProperty("width", w + "px", "important");
-    canvas.style.setProperty("height", h + "px", "important");
-    canvas.style.transformOrigin = "center center";
-    canvas.style.transform = "scale(" + scale + ")";
-
-    // integer upscales stay crisp; fractional ones look better smoothed
-    var fraction = Math.abs(scale - Math.round(scale));
-    canvas.style.imageRendering = (scale >= 1.5 && fraction < 0.02) ? "pixelated" : "auto";
+    canvas.style.setProperty("width", "125%", "important");
+    canvas.style.setProperty("height", "100%", "important");
+    canvas.style.setProperty("position", "absolute", "important");
+    canvas.style.setProperty("left", "0px", "important");
+    canvas.style.setProperty("top", "0px", "important");
+    canvas.style.setProperty("margin", "0px", "important");
+    canvas.style.transform = "";
 }
 
 function installCanvasFit() {
@@ -745,6 +731,18 @@ var Module = {
     }
 };
 
+// Present handler called by the native software present path (knativescreenSDL.cpp).
+// Writes the full RGBA frame to the game canvas; identical frames are never sent.
+Module.boxedwinePresentSoftwareFrame = function(width, height, buffer, presentState) {
+    var canvas = document.getElementById('canvas');
+    if (canvas && buffer) {
+        if (canvas.width !== width) canvas.width = width;
+        if (canvas.height !== height) canvas.height = height;
+        var ctx = canvas.getContext('2d');
+        ctx.putImageData(new ImageData(new Uint8ClampedArray(buffer), width, height), 0, 0);
+    }
+    if (presentState && typeof Atomics !== 'undefined') Atomics.store(presentState, 0, 0);
+};
 Module.setStatus('Downloading...');
 window.onerror = function() {
     Module.setStatus('Exception thrown, see JavaScript console');

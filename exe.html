@@ -35,21 +35,31 @@
           background-color: #000;
       }
 
+      /* Clip box: the top-left 640x450 game window of the 800x450 desktop, fitted to
+         the viewport with its aspect ratio kept and centred. Sizing is pure CSS. */
       .emscripten_border {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 100%;
-          height: 100%;
+          position: fixed;
+          left: 50%;
+          top: 50%;
+          transform: translate(-50%, -50%);
+          width: min(100vw, calc(100vh * 640 / 450));
+          aspect-ratio: 640 / 450;
+          overflow: hidden;
           margin: 0;
           border: 0;
           background-color: #000;
       }
 
+      /* The canvas is the 800x450 backbuffer. 125% of the box width is the full
+         desktop width, so the box shows only the top-left 640x450 game window. */
       #canvas.emscripten {
+          position: absolute;
+          left: 0;
+          top: 0;
           display: block;
-          width: 800px;
-          height: 450px;
+          width: 125%;
+          height: 100%;
+          margin: 0;
           background-color: #000;
           cursor: default;
           touch-action: none;
@@ -163,7 +173,7 @@
         </div>
         <hr style="display: none;">
     </div>
-    <script src="boxedwine-shell.js?v=2"></script>
+    <script src="boxedwine-shell.js?v=6"></script>
     <script async type="text/javascript" src="boxedwine.js"></script>
   </body>
 </html>
