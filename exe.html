@@ -19,10 +19,8 @@
           overflow: hidden;
       }
 
-      /* Center the canvas. The canvas element itself is sized to the exact
-         displayed image (JS keeps it fitted), so boxedwine's mouse coordinate
-         mapping (canvas.width / rect.width) stays accurate - no letterbox from
-         object-fit, which the emulator does not account for. */
+      /* Keep the backbuffer oversized behind the clipped frame; avoid object-fit,
+         which would distort boxedwine's mouse-coordinate mapping. */
       #dropzone {
           position: fixed;
           top: 0;
@@ -35,8 +33,7 @@
           background-color: #000;
       }
 
-      /* Clip box: the top-left 640x450 game window of the 800x450 desktop, fitted to
-         the viewport with its aspect ratio kept and centred. Sizing is pure CSS. */
+      /* Clip the 640x450 game window from the 800x450 desktop (bitmap x 160..800). */
       .emscripten_border {
           position: fixed;
           left: 50%;
@@ -50,11 +47,11 @@
           background-color: #000;
       }
 
-      /* The canvas is the 800x450 backbuffer. 125% of the box width is the full
-         desktop width, so the box shows only the top-left 640x450 game window. */
+      /* Canvas is 800 bitmap px = 125% of the crop. left -25% = -160 bitmap px
+         puts the crop exactly on the game window. */
       #canvas.emscripten {
           position: absolute;
-          left: 0;
+          left: -25%;
           top: 0;
           display: block;
           width: 125%;

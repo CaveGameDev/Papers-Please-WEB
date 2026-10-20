@@ -25,16 +25,15 @@ let DISPLAY_HEIGHT = GAME_HEIGHT;
 
 var lastFit = "";
 
-// Sizing is CSS (exe.html): the clip box shows the top-left 640x450 game window of
-// the 800x450 desktop, fitted to the viewport. boxedwine writes the canvas's inline
-// backbuffer size while it boots, so keep the inline size at 125% x 100% of the box.
+// Shift the backbuffer so the 640x450 crop lines up with the game window (bitmap x 160..800).
+// Keep this offset in sync with exe.html after boxedwine rewrites canvas styles.
 function fitCanvasToViewport() {
     var canvas = document.getElementById('canvas');
     if (!canvas) return;
     canvas.style.setProperty("width", "125%", "important");
     canvas.style.setProperty("height", "100%", "important");
     canvas.style.setProperty("position", "absolute", "important");
-    canvas.style.setProperty("left", "0px", "important");
+    canvas.style.setProperty("left", "-25%", "important");
     canvas.style.setProperty("top", "0px", "important");
     canvas.style.setProperty("margin", "0px", "important");
     canvas.style.transform = "";
@@ -51,9 +50,7 @@ function installCanvasFit() {
         // boxedwine resizes the backbuffer to the emulated resolution at boot
         new MutationObserver(fitCanvasToViewport).observe(canvas, { attributes: true, attributeFilter: ["width", "height"] });
     }
-    // boxedwine also writes inline CSS sizes of its own during boot; keep the
-    // fitted transform applied on top of whatever it does. Cheap: it only writes
-    // when something actually changed.
+    // boxedwine also writes inline CSS sizes during boot; reapply the crop offset.
     setInterval(fitCanvasToViewport, 500);
 }
 
@@ -82,7 +79,8 @@ let Config = {};
 Config.locateRootBaseUrl = "";
 Config.locateAppBaseUrl = "";
 Config.locateOverlayBaseUrl = "";
-Config.urlParams = "";
+// Single-file builds bake in default params (app + program) for URLs with no query string.
+Config.urlParams = window.location.search.length > 1 ? "" : ((window.BOXEDWINE_EMBEDDED && window.BOXEDWINE_EMBEDDED.defaultParams) || "");
 Config.storageMode = STORAGE_INDEXED_DB;
 Config.persist_d_drive = false; // was true - avoids a second IDBFS sync pass on every autoPersist write
 Config.showUploadDownload = false;
@@ -344,6 +342,12 @@ function getBase64Data(base64Data) {
 
 // Memory optimization: explicit garbage collection references
 function loadFile(pathPrefix, filename, callback) {
+    // Single-file builds ship the zips inside the HTML as base64.
+    var embedded = window.BOXEDWINE_EMBEDDED && window.BOXEDWINE_EMBEDDED.files && window.BOXEDWINE_EMBEDDED.files[filename];
+    if (embedded) {
+        getBase64Data(embedded).then(callback);
+        return;
+    }
     fetch(pathPrefix + filename, { method: 'GET' }).then(function(response) {
         if (response.status === 200) {
             response.arrayBuffer().then(function(buffer) {
@@ -672,10 +676,21 @@ function getEmulatorParams() {
     return params;
 }
 
+// Single-file builds ship the wasm inside the HTML as base64 (decoded synchronously, before boxedwine.js runs).
+function getEmbeddedWasmBinary() {
+    var embedded = window.BOXEDWINE_EMBEDDED;
+    if (!embedded || !embedded.wasm) return undefined;
+    var binary = atob(embedded.wasm);
+    var bytes = new Uint8Array(binary.length);
+    for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+}
+
 var Module = {
     preRun: [initialSetup],
     arguments: [],
     postRun: [],
+    wasmBinary: getEmbeddedWasmBinary(),
     print: (function() {
         var element = document.getElementById('output');
         if (element) element.value = '';
